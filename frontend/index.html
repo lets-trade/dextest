@@ -6,10 +6,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>Lets.Trade — Arbitrage Radar</title>
+    <title>Lets.Trade — Statistics & Health</title>
 
     <link rel="icon" href="/static/icon.png" />
-    <link rel="stylesheet" href="/static/style.css?v=lets-trade-ref-2" />
+    <link rel="stylesheet" href="/static/style.css?v=lets-trade-ref-3" />
   </head>
 
   <body data-page="dashboard">
@@ -22,7 +22,7 @@
     <header class="lt-top">
       <div class="lt-brand">
         <div class="lt-brand__logo">
-          <img src="/static/icon.png" alt="Lets.Trade" onerror="this.style.display='none'"/>
+          <img src="/static/icon.png" alt="Lets.Trade" onerror="this.style.display='none'" />
         </div>
         <div class="lt-brand__name">Lets.Trade</div>
       </div>
@@ -45,87 +45,99 @@
       </div>
     </header>
 
-    <section class="lt-hero">
+    <section class="lt-hero lt-hero--tight">
       <div class="lt-hero__head">
-        <h1 class="lt-hero__title">Trading Partners</h1>
-        <p class="lt-hero__sub">Make your money work!</p>
+        <div class="lt-kicker">Арбитражный рантайм</div>
+        <h1 class="lt-hero__title">Statistics & Health</h1>
+        <p class="lt-hero__sub">
+          Полное описание потоков: MEXC USDT-M → mid, DexScreener → priceUsd → usd_to_usdt, расчёт edge и сигналов.
+          Всё, что нужно для мониторинга работы рантайма и датасета.
+        </p>
+
+        <div class="lt-miniKpi lt-miniKpi--hero">
+          <div class="lt-miniKpi__item">
+            <div class="lt-miniKpi__label">ACTION</div>
+            <div class="lt-miniKpi__val"><span id="cfgAction">—</span>%</div>
+          </div>
+          <div class="lt-miniKpi__item">
+            <div class="lt-miniKpi__label">SETUP</div>
+            <div class="lt-miniKpi__val"><span id="cfgSetup">—</span>%</div>
+          </div>
+          <div class="lt-miniKpi__item">
+            <div class="lt-miniKpi__label">CEX notional</div>
+            <div class="lt-miniKpi__val"><span id="cfgNotional">—</span> USDT</div>
+          </div>
+          <div class="lt-miniKpi__item">
+            <div class="lt-miniKpi__label">Dataset</div>
+            <div class="lt-miniKpi__val"><span id="cfgDsMode">—</span></div>
+          </div>
+        </div>
       </div>
 
-      <div class="lt-hero__scene">
-        <div class="lt-hero__grid"></div>
-
-        <svg class="lt-wave" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true">
-          <defs>
-            <linearGradient id="gWave" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stop-color="rgba(72,247,255,.95)"/>
-              <stop offset="0.5" stop-color="rgba(178,107,255,.95)"/>
-              <stop offset="1" stop-color="rgba(255,75,216,.95)"/>
-            </linearGradient>
-            <filter id="fGlow">
-              <feGaussianBlur stdDeviation="4" result="b"/>
-              <feMerge>
-                <feMergeNode in="b"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-
-          <path class="lt-wave__path lt-wave__path--glow"
-                d="M0,150 C80,60 140,60 220,150 C300,240 360,240 440,150
-                   C520,60 580,60 660,150 C740,240 800,240 880,150
-                   C960,60 1020,60 1100,150 C1140,195 1165,210 1200,140"
-                fill="none" stroke="url(#gWave)" stroke-width="10" filter="url(#fGlow)" />
-          <path class="lt-wave__path"
-                d="M0,150 C80,60 140,60 220,150 C300,240 360,240 440,150
-                   C520,60 580,60 660,150 C740,240 800,240 880,150
-                   C960,60 1020,60 1100,150 C1140,195 1165,210 1200,140"
-                fill="none" stroke="url(#gWave)" stroke-width="4" />
-        </svg>
-
-        <div class="lt-tag lt-tag--cyan" style="left: 10%; top: 30%;">
-          <span class="lt-tag__dot"></span> MEXC futures mid
-        </div>
-        <div class="lt-tag lt-tag--blue" style="left: 38%; top: 22%;">
-          <span class="lt-tag__dot"></span> Spread scanner
-        </div>
-        <div class="lt-tag lt-tag--magenta" style="left: 64%; top: 35%;">
-          <span class="lt-tag__dot"></span> DEX orienting price
-        </div>
-        <div class="lt-tag lt-tag--green" style="left: 73%; top: 55%;">
-          <span class="lt-tag__dot"></span> ACTION → Telegram
+      <div class="lt-hero__scene lt-hero__scene--flow">
+        <div class="lt-hero__flow">
+          <div class="lt-hero__flowItem">
+            <span class="pill pill--ok">1</span>
+            <div>
+              <div class="lt-hero__flowTitle">MEXC (фьючи USDT-M)</div>
+              <div class="lt-hero__flowText">wss://contract.mexc.com/edge → sub.tickers (gzip:false) → bid/ask/last/volume24/ts → mid.</div>
+            </div>
+          </div>
+          <div class="lt-hero__flowItem">
+            <span class="pill pill--ok">2</span>
+            <div>
+              <div class="lt-hero__flowTitle">DEX маршруты</div>
+              <div class="lt-hero__flowText">mexc_usdtm_with_dex.csv → лучший pair по ликвидности/объёму → DexScreener priceUsd/liquidity/vol24.</div>
+            </div>
+          </div>
+          <div class="lt-hero__flowItem">
+            <span class="pill pill--ok">3</span>
+            <div>
+              <div class="lt-hero__flowTitle">USD → USDT</div>
+              <div class="lt-hero__flowText">фоновый конвертер обновляет usd_to_usdt (fallback 1.0 при ошибке) → dexPriceUsdt.</div>
+            </div>
+          </div>
+          <div class="lt-hero__flowItem">
+            <span class="pill pill--ok">4</span>
+            <div>
+              <div class="lt-hero__flowTitle">Dataset + сигналы</div>
+              <div class="lt-hero__flowText">edgePct = (dexPriceUsdt - mexcMid)/mexcMid • ACTION/SETUP/NONE • сортируем по abs(edgePct) • CSV per symbol.</div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
     <main class="lt-shell">
       <section class="lt-dash">
-        <div class="lt-cards4">
+        <div class="lt-grid2 lt-grid2--wide">
           <div class="lt-card lt-card--cyan">
-            <div class="lt-card__title">MEXC</div>
+            <div class="lt-card__title">MEXC поток</div>
             <div class="lt-card__pill"><span class="pill pill--init" id="st_mexc_pill">INIT</span></div>
-            <div class="lt-card__desc">Futures tickers / contract stream</div>
-            <div class="lt-card__meta"><span id="mexcCount">—</span> symbols</div>
+            <div class="lt-card__desc">sub.tickers → mid = (bid+ask)/2 или last</div>
+            <div class="lt-card__meta"><b id="mexcCount">—</b> тикеров в рантайме</div>
           </div>
 
           <div class="lt-card lt-card--magenta">
-            <div class="lt-card__title">DEX ENGINE</div>
+            <div class="lt-card__title">DEX engine</div>
             <div class="lt-card__pill"><span class="pill pill--init" id="st_dex_pill">INIT</span></div>
-            <div class="lt-card__desc">Local pool mid-price (RPC)</div>
-            <div class="lt-card__meta"><span id="dexRouted">—</span> routed</div>
+            <div class="lt-card__desc">маршрут из CSV → DexScreener → priceUsd/liquidity/vol24</div>
+            <div class="lt-card__meta"><b id="dexRouted">—</b> маршрутов сработало</div>
           </div>
 
           <div class="lt-card lt-card--blue">
-            <div class="lt-card__title">TELEGRAM</div>
-            <div class="lt-card__pill"><span class="pill pill--init" id="st_tg_pill">INIT</span></div>
-            <div class="lt-card__desc">Rare but precise ACTION alerts</div>
-            <div class="lt-card__meta"><span id="tgHint">—</span></div>
-          </div>
+          <div class="lt-card__title">USD → USDT</div>
+          <div class="lt-card__pill"><span class="pill pill--init" id="st_usd_pill">INIT</span></div>
+          <div class="lt-card__desc">коэффициент usd_to_usdt обновляется в фоне</div>
+          <div class="lt-card__meta">курс: <b id="usdRate">—</b> • источник: <span id="usdSource">—</span></div>
+          <div class="lt-card__meta">обновлено: <span id="usdAge">—</span></div>
+        </div>
 
           <div class="lt-card lt-card--green">
-            <div class="lt-card__title">DATASET</div>
+            <div class="lt-card__title">Dataset & Telegram</div>
             <div class="lt-card__pill"><span class="pill pill--init" id="st_ds_pill">INIT</span></div>
-            <div class="lt-card__desc">CSV snapshots per symbol</div>
-            <div class="lt-card__meta">datasets/YYYY-MM-DD/</div>
+            <div class="lt-card__desc">datasets/YYYY-MM-DD/SYMBOL.csv • ACTION → Telegram</div>
+            <div class="lt-card__meta">mode: <b id="dsModeLabel">—</b> • alerts: <span id="tgHint">—</span></div>
           </div>
         </div>
 
@@ -133,8 +145,8 @@
           <section class="lt-panel">
             <header class="lt-panel__head">
               <div class="lt-panel__h">
-                <div class="lt-panel__kicker">TOP SIGNALS</div>
-                <div class="lt-panel__hint">ACTION only</div>
+                <div class="lt-panel__kicker">EDGE / SIGNALS</div>
+                <div class="lt-panel__hint">ACTION если abs(edgePct) ≥ SPREAD_ACTION_PCT, SETUP если ≥ SPREAD_SETUP_PCT</div>
               </div>
               <button class="lt-btn lt-btn--ghost" id="btnMute">
                 Sound: <b id="soundState">ON</b>
@@ -142,29 +154,36 @@
             </header>
 
             <div class="lt-panel__body">
-              <div id="signalsBox" class="signals">
-                <div class="signals__empty">
-                  <div class="signals__title">NO ACTION SIGNALS</div>
-                  <div class="signals__sub">monitoring universe in real time…</div>
+              <div class="lt-split">
+                <div class="lt-split__col">
+                  <div class="lt-split__title">Top ACTION</div>
+                  <div id="signalsBox" class="signals">
+                    <div class="signals__empty">
+                      <div class="signals__title">NO ACTION SIGNALS</div>
+                      <div class="signals__sub">monitoring universe in real time…</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              <div class="lt-miniKpi">
-                <div class="lt-miniKpi__item">
-                  <div class="lt-miniKpi__label">ACTION</div>
-                  <div class="lt-miniKpi__val"><span id="cfgAction">—</span>%</div>
-                </div>
-                <div class="lt-miniKpi__item">
-                  <div class="lt-miniKpi__label">SETUP</div>
-                  <div class="lt-miniKpi__val"><span id="cfgSetup">—</span>%</div>
-                </div>
-                <div class="lt-miniKpi__item">
-                  <div class="lt-miniKpi__label">CEX notional</div>
-                  <div class="lt-miniKpi__val"><span id="cfgNotional">—</span> USDT</div>
-                </div>
-                <div class="lt-miniKpi__item">
-                  <div class="lt-miniKpi__label">Dataset</div>
-                  <div class="lt-miniKpi__val"><span id="cfgDsMode">—</span></div>
+                <div class="lt-split__col lt-split__col--notes">
+                  <div class="lt-note">
+                    <div class="lt-note__title">Как считаем edge</div>
+                    <ul>
+                      <li>mexcMid: bid/ask → mid, иначе last</li>
+                      <li>dexPriceUsdt = priceUsd * usd_to_usdt</li>
+                      <li>edgePct = (dexPriceUsdt - mexcMid) / mexcMid * 100</li>
+                      <li>ACTION → Telegram, SETUP → UI</li>
+                    </ul>
+                  </div>
+                  <div class="lt-miniKpi lt-miniKpi--stacked">
+                    <div class="lt-miniKpi__item">
+                      <div class="lt-miniKpi__label">Dataset</div>
+                      <div class="lt-miniKpi__val">datasets/YYYY-MM-DD/SYMBOL.csv</div>
+                    </div>
+                    <div class="lt-miniKpi__item">
+                      <div class="lt-miniKpi__label">Ops-лог</div>
+                      <div class="lt-miniKpi__val">datasets/ops_log/YYYY-MM-DD.jsonl</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -174,11 +193,11 @@
             <header class="lt-panel__head">
               <div class="lt-panel__h">
                 <div class="lt-panel__kicker">UNIVERSE</div>
-                <div class="lt-panel__hint">filter / paginate</div>
+                <div class="lt-panel__hint">фильтр / пагинация • состояние рантайма на каждый тикер</div>
               </div>
 
-              <div class="lt-filters">
-                <input id="q" class="lt-input" placeholder="Search symbol / base (e.g. BTC, PEPE)" />
+              <div class="lt-filters lt-filters--tight">
+                <input id="q" class="lt-input" placeholder="Symbol / base (BTC, PEPE)" />
                 <select id="tier" class="lt-select">
                   <option value="ALL">All tiers</option>
                   <option value="HOT">HOT</option>
@@ -208,7 +227,7 @@
                       <th>Symbol</th>
                       <th>Tier</th>
                       <th>MEXC mid</th>
-                      <th>DEX</th>
+                      <th>DEX (USDT)</th>
                       <th>Edge %</th>
                       <th>Direction</th>
                       <th>Route</th>
@@ -237,11 +256,11 @@
 
         <footer class="lt-foot">
           <span>Lets.Trade • MEXC ↔ DEX spread monitor • read-only</span>
-          <span class="muted">If DEX missing → NOT WORKING</span>
+          <span class="muted">Если DEX отсутствует → NOT WORKING</span>
         </footer>
       </section>
     </main>
 
-    <script defer src="/static/app.js?v=lets-trade-ref-2"></script>
+    <script defer src="/static/app.js?v=lets-trade-ref-3"></script>
   </body>
 </html>

@@ -255,6 +255,10 @@ body{
   max-width: 1200px;
   margin: 0 auto;
 }
+.lt-hero--tight{ padding-bottom: 0; }
+.lt-hero--tight .lt-hero__head{ text-align:left; max-width: 960px; margin: 0 auto; }
+.lt-hero--tight .lt-hero__title{ font-size: 48px; }
+.lt-hero--tight .lt-hero__sub{ max-width: 960px; line-height: 1.5; }
 .lt-hero__head{ text-align:center; }
 .lt-hero__title{
   margin:0;
@@ -304,6 +308,31 @@ body{
   opacity:.26;
   mask-image: radial-gradient(circle at 50% 60%, #000 22%, transparent 70%);
 }
+.lt-hero__scene--flow{
+  height: auto;
+  padding: 18px 16px 16px;
+}
+
+.lt-hero__flow{
+  display:flex;
+  flex-direction:column;
+  gap: 12px;
+  position:relative;
+  z-index:1;
+}
+.lt-hero__flowItem{
+  display:flex;
+  gap: 12px;
+  padding: 12px 14px;
+  align-items:flex-start;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 10px 40px rgba(0,0,0,.32);
+}
+.lt-hero__flowTitle{ font-weight: 800; letter-spacing: .02em; }
+.lt-hero__flowText{ color: var(--muted); font-size: 13px; line-height: 1.4; }
 
 .lt-wave{
   position:absolute; inset:0;
@@ -485,6 +514,7 @@ body{
   grid-template-columns: 420px 1fr;
   gap: 14px;
 }
+.lt-grid2--wide{ grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 @media (max-width: 1100px){ .lt-grid2{ grid-template-columns: 1fr; } }
 
 /* inputs */
@@ -496,6 +526,7 @@ body{
   position:relative;
   z-index:1;
 }
+.lt-filters--tight{ margin-top: 10px; }
 .lt-input,.lt-select{
   padding: 10px 12px;
   border-radius: 14px;
@@ -623,6 +654,8 @@ body{
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
+.lt-miniKpi--hero{ grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); max-width: 820px; }
+.lt-miniKpi--stacked{ grid-template-columns: 1fr; }
 .lt-miniKpi__item{
   border-radius: 18px;
   padding: 12px 12px;
@@ -842,6 +875,19 @@ tbody tr:hover{
   font-size: 12px;
   color: rgba(255,255,255,.62);
 }
+.lt-note__title{ font-weight:800; letter-spacing:.04em; margin-bottom:6px; }
+.lt-note ul{ margin: 6px 0 0 16px; padding:0; color: var(--muted); }
+.lt-note li{ margin-bottom: 4px; }
+
+.lt-split{
+  display:grid;
+  grid-template-columns: 1.2fr .9fr;
+  gap: 14px;
+  align-items:start;
+}
+@media (max-width: 1100px){ .lt-split{ grid-template-columns: 1fr; } }
+.lt-split__col--notes{ display:flex; flex-direction:column; gap:12px; }
+.lt-split__title{ font-weight: 900; letter-spacing: .08em; font-size: 12px; color: rgba(255,255,255,.72); margin-bottom: 8px; }
 .lt-explainRow{
   display:flex;
   align-items:center;
