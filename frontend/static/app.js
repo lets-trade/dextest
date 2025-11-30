@@ -1,7 +1,5 @@
-/* Lets.Trade UI runtime (radar + ops log + pipeline view)
+/* Lets.Trade UI runtime (radar + ops log)
    - shows boot process (ws connect/reconnect, first snapshots)
-   - fixes navbar labels/links (Guides->LOG, FAQ->PIPELINE)
-   - pipeline view at /log?view=pipeline (loader/dataset observability)
    - tolerant to unknown backend message schema
 */
 
@@ -39,15 +37,11 @@
   // PAGE detection (does not depend on templates)
   // - radar: /
   // - ops log: /log
-  // - pipeline: /log?view=pipeline
   let PAGE = document.body?.dataset?.page || "";
   if (!PAGE) {
     if (location.pathname === "/") PAGE = "dashboard";
     else if (location.pathname.startsWith("/log")) PAGE = "log";
     else PAGE = "dashboard";
-  }
-  if (location.pathname.startsWith("/log") && url.searchParams.get("view") === "pipeline") {
-    PAGE = "pipeline";
   }
 
   // ---------- app state ----------
@@ -76,6 +70,7 @@
       last_kind: "",
       last_event_tag: "",
       last_symbol: "",
+      last_request: "",
     },
 
     // canonical state buckets (best-effort)
@@ -90,6 +85,11 @@
     // internal op logs (ring buffer)
     logs: [],
     logsCap: 2500,
+
+    prev: {
+      serviceOk: {},
+      dexRouted: null,
+    },
 
     // ui flags
     follow: true,
@@ -106,7 +106,9 @@
       symbol: symbol || "",
       msg: msg || "",
       extra: extra,
+      hint: "",
     };
+    item.hint = humanizeLog(item);
     app.logs.push(item);
     if (app.logs.length > app.logsCap) app.logs.splice(0, app.logs.length - app.logsCap);
 
@@ -114,7 +116,19 @@
     app.metrics.last_symbol = item.symbol || app.metrics.last_symbol;
 
     if (PAGE === "log") renderOpsLog();
-    if (PAGE === "pipeline") renderPipeline();
+  }
+
+  function humanizeLog(it) {
+    const tag = (it.tag || "").toUpperCase();
+    const msg = (it.msg || "").toLowerCase();
+    if (tag === "WS" && msg.includes("connected")) return "Вебсокет поднят, слушаем поток";
+    if (tag === "WS" && msg.includes("reconnect")) return "Планируем переподключение к источнику";
+    if (tag === "BOOT" && msg.includes("first message")) return "Получен первый ответ от бэка";
+    if (tag === "DEX" && msg.includes("маршрутов")) return "RPC вернул маршруты/пулы для расчёта цены";
+    if (tag === "SERVICE") return "Статус сервиса обновлён";
+    if (tag === "UNIVERSE") return "Обновление строки в таблице монет";
+    if (tag === "SIGNAL") return "Аналитика спреда отправила сигнал";
+    return "";
   }
 
   function setPill(id, text, mode /* ok|bad|init|setup|action */) {
@@ -132,11 +146,25 @@
     const age = app.lastMsgAt ? (Date.now() - app.lastMsgAt) : null;
     const suffix = age == null ? "no data" : `${Math.round(age / 1000)}s ago`;
     el.textContent = `${nowShort()} • ${app.wsState} • ${suffix}`;
+    renderLogSummary();
   }
 
-  // ---------- navbar fix (Guides/FAQ) ----------
+  function renderLogSummary() {
+    const set = (id, val) => {
+      const el = $(id);
+      if (el) el.textContent = val;
+    };
+
+    const age = app.lastMsgAt ? `${Math.round((Date.now() - app.lastMsgAt) / 1000)}s назад` : "нет данных";
+    set("logWsState", `${app.wsState} • ${age}`);
+    set("logUniverse", `${app.state.universe?.length || 0} строк`);
+    set("logDex", `${app.prev.dexRouted ?? "—"}`);
+    set("logSignals", `${app.metrics.signal_events}`);
+    set("logLast", app.metrics.last_request || "—");
+  }
+
+  // ---------- navbar fix (Guides) ----------
   function fixNavbarLinks() {
-    // We do it in JS so you don't have to hunt templates.
     const anchors = Array.from(document.querySelectorAll("a"));
     for (const a of anchors) {
       const t = (a.textContent || "").trim().toLowerCase();
@@ -146,12 +174,6 @@
       if (t === "guides") {
         a.textContent = "Log";
         a.setAttribute("href", "/log");
-      }
-
-      // replace FAQ -> PIPELINE (loader/dataset view)
-      if (t === "faq") {
-        a.textContent = "Pipeline";
-        a.setAttribute("href", "/log?view=pipeline");
       }
     }
   }
@@ -188,6 +210,7 @@
       ws.onmessage = (ev) => {
         app.lastMsgAt = Date.now();
         app.metrics.ws_messages += 1;
+        app.metrics.last_request = nowShort();
 
         if (!app.boot.firstMsgAt) {
           app.boot.firstMsgAt = Date.now();
@@ -314,6 +337,7 @@
   }
 
   function applyState(s) {
+    renderLogSummary();
     // services (best-effort)
     if (s.services && typeof s.services === "object") {
       app.state.services = s.services;
@@ -322,10 +346,23 @@
       const tg = s.services.telegram || s.services.tg || s.services.TELEGRAM;
       const ds = s.services.dataset || s.services.csv || s.services.DATASET;
 
+      const svc = (key, label, obj) => {
+        if (!obj || obj.ok == null) return;
+        const prev = app.prev.serviceOk[key];
+        if (prev === obj.ok) return;
+        app.prev.serviceOk[key] = obj.ok;
+        pushLog(obj.ok ? "info" : "warn", "SERVICE", `${label}: ${obj.ok ? "OK" : "NOT WORKING"}`, obj);
+      };
+
       if (mexc) setPill("st_mexc_pill", mexc.ok ? "OK" : "NOT WORKING", mexc.ok ? "ok" : "bad");
       if (dex)  setPill("st_dex_pill",  dex.ok  ? "OK" : "NOT WORKING", dex.ok  ? "ok" : "bad");
       if (tg)   setPill("st_tg_pill",   tg.ok   ? "OK" : "NOT WORKING", tg.ok   ? "ok" : "bad");
       if (ds)   setPill("st_ds_pill",   ds.ok   ? "OK" : "NOT WORKING", ds.ok   ? "ok" : "bad");
+
+      svc("mexc", "MEXC", mexc);
+      svc("dex", "DEX engine", dex);
+      svc("tg", "Telegram", tg);
+      svc("ds", "Dataset", ds);
     }
 
     // legacy flat statuses
@@ -346,6 +383,13 @@
     // counts if present in state
     if ($("mexcCount") && (s.mexc_symbols_count != null)) $("mexcCount").textContent = String(s.mexc_symbols_count);
     if ($("dexRouted") && (s.dex_routed_count != null)) $("dexRouted").textContent = String(s.dex_routed_count);
+    if (s.dex_routed_count != null && s.dex_routed_count !== app.prev.dexRouted) {
+      const cnt = s.dex_routed_count;
+      app.prev.dexRouted = cnt;
+      const lv = cnt > 0 ? "info" : "warn";
+      const txt = cnt > 0 ? `DEX: ${cnt} маршрутов с ценой` : "DEX: маршрутов нет, RPC не отдаёт цену";
+      pushLog(lv, "DEX", txt, { routed: cnt });
+    }
 
     // universe
     if (Array.isArray(s.universe)) {
@@ -355,11 +399,11 @@
         pushLog("info", "BOOT", `universe snapshot (${s.universe.length} rows)`);
       }
       if (PAGE === "dashboard") renderDashboardTable();
-      if (PAGE === "log" || PAGE === "pipeline") refreshSymbolPicker();
+      if (PAGE === "log") refreshSymbolPicker();
     } else if (Array.isArray(s.rows)) {
       app.state.universe = s.rows;
       if (PAGE === "dashboard") renderDashboardTable();
-      if (PAGE === "log" || PAGE === "pipeline") refreshSymbolPicker();
+      if (PAGE === "log") refreshSymbolPicker();
     }
 
     // signals
@@ -371,10 +415,11 @@
     // per-symbol snapshot
     if (s.symbol && (s.dex || s.mexc || s.edge_pct != null)) {
       app.state.symbolMap[s.symbol] = { ...s, _ts: Date.now() };
-      if (PAGE === "log" || PAGE === "pipeline") maybeRenderInspector(app.selectedSymbol);
+      if (PAGE === "log") maybeRenderInspector(app.selectedSymbol);
     }
 
-    if (PAGE === "pipeline") renderPipeline();
+    renderLogSummary();
+
   }
 
   function applySignal(sig) {
@@ -388,13 +433,14 @@
     pushLog("info", "SIGNAL", `signal ${symbol} edge=${edge ?? "?"}% dir=${dir || "?"}`, sig, symbol);
 
     if (PAGE === "dashboard") renderSignals();
-    if (PAGE === "log" || PAGE === "pipeline") {
+    if (PAGE === "log") {
       refreshSymbolPicker();
       if (symbol) maybeRenderInspector(symbol);
     }
 
     const isAction = (sig.level || sig.kind || "").toString().toLowerCase().includes("action") || sig.action === true;
     if (isAction && app.sound) beep();
+    renderLogSummary();
   }
 
   function applyUniverse(u) {
@@ -412,8 +458,8 @@
     pushLog("info", "UNIVERSE", `row update ${symbol}`, row, symbol);
 
     if (PAGE === "dashboard") renderDashboardTable();
-    if (PAGE === "log" || PAGE === "pipeline") refreshSymbolPicker();
-    if (PAGE === "pipeline") renderPipeline();
+    if (PAGE === "log") refreshSymbolPicker();
+    renderLogSummary();
   }
 
   // ---------- DASHBOARD ----------
@@ -656,7 +702,7 @@
         const tf = $("textFilter");
         if (!tf) return;
         tf.value = t;
-        PAGE === "pipeline" ? renderPipeline() : renderOpsLog();
+        renderOpsLog();
       });
     });
   }
@@ -664,6 +710,8 @@
   function renderOpsLog() {
     const list = $("logList");
     if (!list) return;
+
+    renderLogSummary();
 
     const sym = ($("symPick")?.value || "").trim();
     const text = ($("textFilter")?.value || "").trim().toLowerCase();
@@ -699,6 +747,7 @@
       const title = `${it.tag}${it.symbol ? " • " + it.symbol : ""}`;
       const extra = it.extra == null ? "" : JSON.stringify(it.extra, null, 2);
 
+      const hint = it.hint ? `<div class="logitem__hint">${esc(it.hint)}</div>` : "";
       return `
         <div class="logitem" data-open="0">
           <div class="logitem__top">
@@ -709,6 +758,7 @@
             </div>
           </div>
           <div class="logitem__msg">${esc(it.msg)}</div>
+          ${hint}
           ${extra ? `<div class="logitem__extra">${esc(extra)}</div>` : ``}
         </div>
       `;
@@ -737,8 +787,8 @@
 
     btnClear?.addEventListener("click", () => {
       app.logs = [];
-      pushLog("info", "SYS", "ops log cleared");
-      PAGE === "pipeline" ? renderPipeline() : renderOpsLog();
+      pushLog("info", "SYS", "Журнал очищен");
+      renderOpsLog();
     });
 
     const symPick = $("symPick");
@@ -748,150 +798,13 @@
     symPick?.addEventListener("change", () => {
       app.selectedSymbol = symPick.value || "";
       maybeRenderInspector(app.selectedSymbol);
-      PAGE === "pipeline" ? renderPipeline() : renderOpsLog();
+      renderOpsLog();
     });
-    textFilter?.addEventListener("input", () => (PAGE === "pipeline" ? renderPipeline() : renderOpsLog()));
-    limitPick?.addEventListener("change", () => (PAGE === "pipeline" ? renderPipeline() : renderOpsLog()));
+    textFilter?.addEventListener("input", () => renderOpsLog());
+    limitPick?.addEventListener("change", () => renderOpsLog());
 
     const qsSym = url.searchParams.get("symbol");
     if (qsSym && symPick) app.selectedSymbol = qsSym;
-  }
-
-  // ---------- PIPELINE VIEW (inside /log?view=pipeline) ----------
-  function ensurePipelineBanner() {
-    const host = $("pipelineBanner");
-    if (host) return host;
-
-    // Try to place above logList
-    const logList = $("logList");
-    if (!logList) return null;
-
-    const div = document.createElement("div");
-    div.id = "pipelineBanner";
-    div.style.marginBottom = "14px";
-    logList.parentElement.insertBefore(div, logList);
-    return div;
-  }
-
-  function msDelta(a, b) {
-    if (!a || !b) return "—";
-    const d = Math.max(0, b - a);
-    return `${(d / 1000).toFixed(2)}s`;
-  }
-
-  function countRouted(universe) {
-    let c = 0;
-    for (const r of universe || []) {
-      const route = String(r.route || r.dex_route || r.dexRoute || "NO ROUTE");
-      if (route && route !== "NO ROUTE") c += 1;
-    }
-    return c;
-  }
-
-  function renderPipeline() {
-    const banner = ensurePipelineBanner();
-    const list = $("logList");
-    if (!list || !banner) return;
-
-    // banner report
-    const uCount = (app.state.universe || []).length;
-    const routed = countRouted(app.state.universe);
-    const cfg = app.state.config || {};
-
-    const actionTh = cfg.spread_action_pct ?? "—";
-    const setupTh = cfg.spread_setup_pct ?? "—";
-    const notional = cfg.cex_notional_usdt ?? "—";
-
-    const wsOpen = app.boot.wsOpenAt;
-    const firstMsg = app.boot.firstMsgAt;
-    const firstState = app.boot.firstStateAt;
-    const firstUni = app.boot.firstUniverseAt;
-
-    const lastAge = app.lastMsgAt ? `${Math.round((Date.now() - app.lastMsgAt)/1000)}s` : "—";
-
-    // critical hints
-    const hints = [];
-    if (routed === 0) hints.push("DEX routes: 0 → DEX будет NOT WORKING / dataset(routed) не пишет");
-    if (!uCount) hints.push("Universe: 0 → бэк ещё не прислал список контрактов/тикеров");
-    if (app.wsState !== "OPEN") hints.push("WS не OPEN → UI не увидит данные");
-    if (app.wsState === "OPEN" && !app.boot.firstMsgAt) hints.push("WS OPEN, но сообщений нет → возможно MEXC stream молчит/не подписался");
-
-    banner.innerHTML = `
-      <div class="panel" style="padding:16px 16px 14px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
-          <div>
-            <div class="h2" style="margin:0 0 6px;">Pipeline / Loaders</div>
-            <div class="muted">what happens during boot • data ingest • dataset writing</div>
-          </div>
-          <div style="display:flex; gap:10px; align-items:center;">
-            <span class="pill ${app.wsState === "OPEN" ? "pill--ok" : "pill--bad"}">${esc(app.wsState)}</span>
-            <span class="pill pill--init">last msg: ${esc(lastAge)}</span>
-          </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:12px; margin-top:14px;">
-          <div class="mini">
-            <div class="mini__k">Universe rows</div>
-            <div class="mini__v">${uCount}</div>
-          </div>
-          <div class="mini">
-            <div class="mini__k">Routed</div>
-            <div class="mini__v">${routed}</div>
-          </div>
-          <div class="mini">
-            <div class="mini__k">Signals seen</div>
-            <div class="mini__v">${app.metrics.signal_events}</div>
-          </div>
-          <div class="mini">
-            <div class="mini__k">WS msgs</div>
-            <div class="mini__v">${app.metrics.ws_messages}</div>
-          </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:12px; margin-top:12px;">
-          <div class="mini">
-            <div class="mini__k">Action / Setup</div>
-            <div class="mini__v">${esc(actionTh)}% / ${esc(setupTh)}%</div>
-          </div>
-          <div class="mini">
-            <div class="mini__k">CEX notional</div>
-            <div class="mini__v">${esc(notional)} USDT</div>
-          </div>
-          <div class="mini">
-            <div class="mini__k">Boot: WS → first msg</div>
-            <div class="mini__v">${msDelta(wsOpen, firstMsg)}</div>
-          </div>
-          <div class="mini">
-            <div class="mini__k">Boot: msg → state</div>
-            <div class="mini__v">${msDelta(firstMsg, firstState)}</div>
-          </div>
-        </div>
-
-        ${hints.length ? `
-          <div class="hintbox" style="margin-top:14px;">
-            <div class="hintbox__title">WHY IT LOOKS IDLE</div>
-            <ul class="hintbox__list">
-              ${hints.map(h => `<li>${esc(h)}</li>`).join("")}
-            </ul>
-          </div>
-        ` : ``}
-
-        <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <span class="muted">Raw stream below (BOOT/WS/UNIVERSE/SIGNAL/RAW)</span>
-          <span class="muted">• last kind: <b>${esc(app.metrics.last_kind || "—")}</b></span>
-        </div>
-      </div>
-    `;
-
-    // then render normal ops log beneath, but auto-filter to boot-ish
-    const tf = $("textFilter");
-    if (tf && !tf.value) {
-      // keep user filter if already set
-      // default view: show boot/WS/universe
-      tf.value = "BOOT";
-    }
-
-    renderOpsLog();
   }
 
   // ---------- sound ----------
@@ -924,12 +837,6 @@
       refreshSymbolPicker();
       maybeRenderInspector(app.selectedSymbol);
     }
-    if (PAGE === "pipeline") {
-      // pipeline uses the same template as /log
-      renderPipeline();
-      refreshSymbolPicker();
-      maybeRenderInspector(app.selectedSymbol);
-    }
   }
 
   function init() {
@@ -937,7 +844,7 @@
     initBootLog();
 
     if (PAGE === "dashboard") bindDashboardControls();
-    if (PAGE === "log" || PAGE === "pipeline") bindOpsControls();
+    if (PAGE === "log") bindOpsControls();
 
     wsConnect();
 

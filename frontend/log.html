@@ -28,8 +28,7 @@
 
       <nav class="lt-nav">
         <a class="lt-nav__link" href="/">Statistics</a>
-        <a class="lt-nav__link lt-nav__link--active" href="/log">Guides</a>
-        <a class="lt-nav__link" href="/log">FAQ</a>
+        <a class="lt-nav__link lt-nav__link--active" href="/log">Log</a>
       </nav>
 
       <div class="lt-top__right">
@@ -42,8 +41,8 @@
     </header>
 
     <section class="lt-opsHero">
-      <div class="lt-opsHero__title">Internal Operations Log</div>
-      <div class="lt-opsHero__sub">Explainability / debugging / dataset sanity</div>
+      <div class="lt-opsHero__title">System Activity Log</div>
+      <div class="lt-opsHero__sub">Каждый запрос, получение данных, анализ и решение в одном списке</div>
       <div class="lt-opsHero__bar">
         <div class="lt-opsHero__dots">
           <span class="dot dot--red"></span>
@@ -60,7 +59,7 @@
           <header class="lt-panel__head">
             <div class="lt-panel__h">
               <div class="lt-panel__kicker">EVENT STREAM</div>
-              <div class="lt-panel__hint">filter by symbol • click event to expand</div>
+              <div class="lt-panel__hint">каждый шаг системы в хронологии</div>
             </div>
 
             <div class="lt-actions">
@@ -70,6 +69,29 @@
           </header>
 
           <div class="lt-panel__body">
+            <div class="lt-logSummary">
+              <div class="lt-logSummary__item">
+                <div class="lt-logSummary__label">Websocket</div>
+                <div class="lt-logSummary__value" id="logWsState">—</div>
+              </div>
+              <div class="lt-logSummary__item">
+                <div class="lt-logSummary__label">Universe</div>
+                <div class="lt-logSummary__value" id="logUniverse">—</div>
+              </div>
+              <div class="lt-logSummary__item">
+                <div class="lt-logSummary__label">DEX routed</div>
+                <div class="lt-logSummary__value" id="logDex">—</div>
+              </div>
+              <div class="lt-logSummary__item">
+                <div class="lt-logSummary__label">Signals</div>
+                <div class="lt-logSummary__value" id="logSignals">—</div>
+              </div>
+              <div class="lt-logSummary__item">
+                <div class="lt-logSummary__label">Последний запрос</div>
+                <div class="lt-logSummary__value" id="logLast">—</div>
+              </div>
+            </div>
+
             <div class="lt-opsFilters">
               <div class="lt-field">
                 <div class="lt-field__label">Symbol</div>
@@ -79,8 +101,8 @@
               </div>
 
               <div class="lt-field">
-                <div class="lt-field__label">Search text</div>
-                <input id="textFilter" class="lt-input" placeholder="contains… (NOT WORKING, DEX, MEXC)" />
+                <div class="lt-field__label">Поиск</div>
+                <input id="textFilter" class="lt-input" placeholder="что ищем: DEX, MEXC, NOT WORKING…" />
               </div>
 
               <div class="lt-field">
@@ -106,7 +128,7 @@
                   <header class="lt-panel__head">
                     <div class="lt-panel__h">
                       <div class="lt-panel__kicker">SYMBOL INSPECTOR</div>
-                      <div class="lt-panel__hint">last snapshot</div>
+                      <div class="lt-panel__hint">последний снапшот из потоков</div>
                     </div>
                   </header>
                   <div class="lt-panel__body">
