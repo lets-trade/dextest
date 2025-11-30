@@ -18,7 +18,6 @@
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
 
-  const nowISO = () => new Date().toISOString();
   const nowShort = () => {
     const d = new Date();
     const hh = String(d.getHours()).padStart(2, "0");
@@ -80,7 +79,8 @@
 
     // canonical state buckets (best-effort)
     state: {
-      services: {}, // mexc/dex/telegram/dataset statuses
+      services: {}, // mexc/dex/telegram/dataset/usd_to_usdt statuses
+      converter: {},
       config: {},   // thresholds, notional...
       universe: [], // rows for table
       signals: [],  // last action/setup signals
@@ -314,66 +314,99 @@
   }
 
   function applyState(s) {
-    // services (best-effort)
-    if (s.services && typeof s.services === "object") {
-      app.state.services = s.services;
-      const mexc = s.services.mexc || s.services.MEXC;
-      const dex = s.services.dex || s.services.DEX;
-      const tg = s.services.telegram || s.services.tg || s.services.TELEGRAM;
-      const ds = s.services.dataset || s.services.csv || s.services.DATASET;
+    const snap = s && typeof s === "object" && s.payload ? s.payload : s;
 
-      if (mexc) setPill("st_mexc_pill", mexc.ok ? "OK" : "NOT WORKING", mexc.ok ? "ok" : "bad");
-      if (dex)  setPill("st_dex_pill",  dex.ok  ? "OK" : "NOT WORKING", dex.ok  ? "ok" : "bad");
-      if (tg)   setPill("st_tg_pill",   tg.ok   ? "OK" : "NOT WORKING", tg.ok   ? "ok" : "bad");
-      if (ds)   setPill("st_ds_pill",   ds.ok   ? "OK" : "NOT WORKING", ds.ok   ? "ok" : "bad");
-    }
+    const status = snap.status || snap.services || {};
+    app.state.services = status;
 
-    // legacy flat statuses
-    if (s.mexc_ok != null) setPill("st_mexc_pill", s.mexc_ok ? "OK" : "NOT WORKING", s.mexc_ok ? "ok" : "bad");
-    if (s.dex_ok  != null) setPill("st_dex_pill",  s.dex_ok  ? "OK" : "NOT WORKING", s.dex_ok  ? "ok" : "bad");
-    if (s.telegram_ok != null) setPill("st_tg_pill", s.telegram_ok ? "OK" : "NOT WORKING", s.telegram_ok ? "ok" : "bad");
-    if (s.dataset_ok != null) setPill("st_ds_pill", s.dataset_ok ? "OK" : "NOT WORKING", s.dataset_ok ? "ok" : "bad");
+    const norm = (v) => (v == null ? null : v.toString().toUpperCase());
+    const set = (id, val) => {
+      if (val == null) return;
+      const st = norm(val);
+      const ok = st === "OK";
+      const bad = st && (st.includes("NOT WORKING") || st === "ERROR" || st === "DISABLED");
+      setPill(id, st, ok ? "ok" : bad ? "bad" : "init");
+    };
+
+    set(
+      "st_mexc_pill",
+      status.mexc_ws ?? status.mexc ?? (snap.mexc_ok != null ? (snap.mexc_ok ? "OK" : "NOT WORKING") : null)
+    );
+    set("st_dex_pill", status.dex ?? (snap.dex_ok != null ? (snap.dex_ok ? "OK" : "NOT WORKING") : null));
+    set(
+      "st_tg_pill",
+      status.telegram ?? (snap.telegram_ok != null ? (snap.telegram_ok ? "OK" : "NOT WORKING") : null)
+    );
+    set(
+      "st_ds_pill",
+      status.dataset ?? (snap.dataset_ok != null ? (snap.dataset_ok ? "OK" : "NOT WORKING") : null)
+    );
+    set("st_usd_pill", status.usd_to_usdt ?? status.usdToUsdt);
+
+    // converter snapshot
+    app.state.converter = {
+      rate: snap.usd_to_usdt_rate ?? status.usdt_rate ?? status.usd_to_usdt_rate ?? status.usdt_rate ?? null,
+      source: snap.usd_to_usdt_source ?? status.usdt_rate_src ?? null,
+      ageSec: snap.usd_to_usdt_age ?? status.usdt_rate_age ?? null,
+      ok: snap.usd_to_usdt_ok ?? status.usdt_rate_ok ?? null,
+    };
 
     // config
-    if (s.config && typeof s.config === "object") {
-      app.state.config = s.config;
-      if ($("cfgAction") && s.config.spread_action_pct != null) $("cfgAction").textContent = String(s.config.spread_action_pct);
-      if ($("cfgSetup")  && s.config.spread_setup_pct  != null) $("cfgSetup").textContent  = String(s.config.spread_setup_pct);
-      if ($("cfgNotional") && s.config.cex_notional_usdt != null) $("cfgNotional").textContent = String(s.config.cex_notional_usdt);
-      if ($("cfgDsMode")) $("cfgDsMode").textContent = s.config.dataset_enabled === false ? "OFF" : "ON";
+    if (snap.config && typeof snap.config === "object") {
+      app.state.config = snap.config;
+      const cfg = snap.config;
+      const act = cfg.spread_action_pct ?? cfg.spreadActionPct;
+      const setup = cfg.spread_setup_pct ?? cfg.spreadSetupPct;
+      const notional = cfg.cex_notional_usdt ?? cfg.cexNotionalUsdt;
+      const dsMode = cfg.dataset_mode ?? cfg.datasetMode;
+
+      if ($("cfgAction") && act != null) $("cfgAction").textContent = String(act);
+      if ($("cfgSetup") && setup != null) $("cfgSetup").textContent = String(setup);
+      if ($("cfgNotional") && notional != null) $("cfgNotional").textContent = String(notional);
+      if ($("cfgDsMode")) $("cfgDsMode").textContent = dsMode ? dsMode.toUpperCase() : "ON";
+      if ($("dsModeLabel")) $("dsModeLabel").textContent = dsMode ? dsMode.toUpperCase() : "ON";
     }
 
     // counts if present in state
-    if ($("mexcCount") && (s.mexc_symbols_count != null)) $("mexcCount").textContent = String(s.mexc_symbols_count);
-    if ($("dexRouted") && (s.dex_routed_count != null)) $("dexRouted").textContent = String(s.dex_routed_count);
+    if ($("mexcCount") && (snap.mexc_symbols_count != null)) $("mexcCount").textContent = String(snap.mexc_symbols_count);
+    if ($("dexRouted") && (snap.dex_routed_count != null)) $("dexRouted").textContent = String(snap.dex_routed_count);
 
-    // universe
-    if (Array.isArray(s.universe)) {
-      app.state.universe = s.universe;
+    // universe snapshots (schema tolerant)
+    if (Array.isArray(snap.universe)) {
+      app.state.universe = snap.universe;
       if (!app.boot.firstUniverseAt) {
         app.boot.firstUniverseAt = Date.now();
-        pushLog("info", "BOOT", `universe snapshot (${s.universe.length} rows)`);
+        pushLog("info", "BOOT", `universe snapshot (${snap.universe.length} rows)`);
       }
       if (PAGE === "dashboard") renderDashboardTable();
       if (PAGE === "log" || PAGE === "pipeline") refreshSymbolPicker();
-    } else if (Array.isArray(s.rows)) {
-      app.state.universe = s.rows;
+    } else if (Array.isArray(snap.rows)) {
+      app.state.universe = snap.rows;
+      if (PAGE === "dashboard") renderDashboardTable();
+      if (PAGE === "log" || PAGE === "pipeline") refreshSymbolPicker();
+    } else if (Array.isArray(snap.symbols)) {
+      app.state.universe = snap.symbols;
+      if (!app.boot.firstUniverseAt) {
+        app.boot.firstUniverseAt = Date.now();
+        pushLog("info", "BOOT", `universe snapshot (${snap.symbols.length} rows)`);
+      }
       if (PAGE === "dashboard") renderDashboardTable();
       if (PAGE === "log" || PAGE === "pipeline") refreshSymbolPicker();
     }
 
     // signals
-    if (Array.isArray(s.signals)) {
-      app.state.signals = s.signals;
+    if (Array.isArray(snap.signals)) {
+      app.state.signals = snap.signals;
       if (PAGE === "dashboard") renderSignals();
     }
 
     // per-symbol snapshot
-    if (s.symbol && (s.dex || s.mexc || s.edge_pct != null)) {
-      app.state.symbolMap[s.symbol] = { ...s, _ts: Date.now() };
+    if (snap.symbol && (snap.dex || snap.mexc || snap.edge_pct != null || snap.edgePct != null)) {
+      app.state.symbolMap[snap.symbol] = { ...snap, _ts: Date.now() };
       if (PAGE === "log" || PAGE === "pipeline") maybeRenderInspector(app.selectedSymbol);
     }
 
+    refreshOverview();
     if (PAGE === "pipeline") renderPipeline();
   }
 
@@ -470,6 +503,30 @@
     });
   }
 
+  function refreshOverview() {
+    // counts derived from current universe
+    const rows = app.state.universe || [];
+    const routed = countRouted(rows);
+    const mexcCountEl = $("mexcCount");
+    if (mexcCountEl) mexcCountEl.textContent = rows.length ? String(rows.length) : mexcCountEl.textContent || "—";
+
+    const routedEl = $("dexRouted");
+    if (routedEl) routedEl.textContent = routed ? String(routed) : routedEl.textContent || "—";
+
+    const tgHint = $("tgHint");
+    if (tgHint) tgHint.textContent = app.state.config?.telegramEnabled === false ? "Telegram OFF" : "ACTION only";
+
+    // usd→usdt converter
+    const conv = app.state.converter || {};
+    if ($("usdRate") && conv.rate != null) $("usdRate").textContent = Number(conv.rate).toFixed(6);
+    if ($("usdSource") && conv.source != null) $("usdSource").textContent = String(conv.source);
+    if ($("st_usd_pill") && conv.ok != null) setPill("st_usd_pill", conv.ok ? "OK" : "NOT WORKING", conv.ok ? "ok" : "bad");
+    if ($("usdAge")) {
+      const age = conv.ageSec;
+      $("usdAge").textContent = age == null ? "—" : `${Math.round(Number(age))}s ago`;
+    }
+  }
+
   function renderDashboardTable() {
     const tbody = $("rows");
     if (!tbody) return;
@@ -485,7 +542,7 @@
     if (tier !== "ALL") rows = rows.filter((r) => (getTier(r) === tier));
 
     if (view === "ROUTED") rows = rows.filter((r) => {
-      const route = String(r.route || r.dex_route || r.dexRoute || "");
+      const route = String(r.route || r.dex_route || r.dexRoute || (r.dex ? r.dex.pair : ""));
       return route && route !== "NO ROUTE";
     });
     if (view === "SIGNALS") rows = rows.filter((r) => {
@@ -499,17 +556,18 @@
     const from = dashPage * pageSize;
     const chunk = rows.slice(from, from + pageSize);
 
-    const actionTh = Number(app.state.config?.spread_action_pct ?? 1.0);
-    const setupTh = Number(app.state.config?.spread_setup_pct ?? 0.5);
+    const actionTh = Number(app.state.config?.spread_action_pct ?? app.state.config?.spreadActionPct ?? 1.0);
+    const setupTh = Number(app.state.config?.spread_setup_pct ?? app.state.config?.spreadSetupPct ?? 0.5);
 
     tbody.innerHTML = chunk.map((r) => {
       const sym = esc(r.symbol || r.sym || "");
       const t = esc(getTier(r));
-      const mexc = r.mexc_mid ?? r.mexcMid ?? r.mexc ?? r.cex_mid ?? null;
-      const dex  = r.dex_mid ?? r.dexMid ?? r.dex ?? null;
+      const mexcMid = r.mexc_mid ?? r.mexcMid ?? (r.mexc ? r.mexc.mid : null) ?? r.cex_mid ?? null;
+      const dexMid  = r.dex_mid ?? r.dexMid ?? (r.dex ? r.dex.priceUsdt ?? r.dex.priceUsd : null) ?? r.dex ?? null;
       const edge = r.edge_pct ?? r.edgePct ?? r.edge ?? null;
       const dir  = esc(r.direction || r.dir || "");
-      const route = esc(r.route || r.dex_route || r.dexRoute || "NO ROUTE");
+      const routeRaw = r.route || r.dex_route || r.dexRoute || (r.dex ? `${r.dex.chain || "?"}:${r.dex.pair || "?"}` : "NO ROUTE");
+      const route = esc(routeRaw || "NO ROUTE");
       const status = String(r.status || r.signal || "").toUpperCase() || (route === "NO ROUTE" ? "NO ROUTE" : "OK");
 
       let cls = "";
@@ -520,8 +578,8 @@
         <tr class="${cls}" data-sym="${sym}">
           <td style="font-family:ui-monospace,Menlo,Consolas,monospace; font-weight:800;">${sym}</td>
           <td><span class="pill pill--init" style="font-size:10px; padding:6px 10px;">${t}</span></td>
-          <td>${fmtNum(mexc, 4)}</td>
-          <td>${fmtNum(dex, 4)}</td>
+          <td>${fmtNum(mexcMid, 4)}</td>
+          <td>${fmtNum(dexMid, 4)}</td>
           <td>${edge == null ? "--" : `${Number(edge).toFixed(3)}%`}</td>
           <td>${dir || "—"}</td>
           <td>${route || "NO ROUTE"}</td>
@@ -621,11 +679,11 @@
     const pairs = [
       ["Symbol", sym],
       ["Tier", snap.tier || snap.level || "—"],
-      ["MEXC mid", snap.mexc_mid ?? snap.mexcMid ?? snap.cex_mid ?? snap.mexc ?? "—"],
-      ["DEX", snap.dex_mid ?? snap.dexMid ?? snap.dex ?? "—"],
+      ["MEXC mid", snap.mexc_mid ?? snap.mexcMid ?? (snap.mexc ? snap.mexc.mid : null) ?? snap.cex_mid ?? snap.mexc ?? "—"],
+      ["DEX", snap.dex_mid ?? snap.dexMid ?? (snap.dex ? snap.dex.priceUsdt ?? snap.dex.priceUsd : null) ?? snap.dex ?? "—"],
       ["Edge %", snap.edge_pct ?? snap.edgePct ?? snap.edge ?? "—"],
       ["Direction", snap.direction || snap.dir || "—"],
-      ["Route", snap.route || snap.dex_route || snap.dexRoute || "NO ROUTE"],
+      ["Route", snap.route || snap.dex_route || snap.dexRoute || (snap.dex ? `${snap.dex.chain || "?"}:${snap.dex.pair || "?"}` : "NO ROUTE")],
       ["Status", snap.status || snap.signal || "—"],
       ["Updated", snap._ts ? new Date(snap._ts).toLocaleTimeString() : "—"],
     ];
