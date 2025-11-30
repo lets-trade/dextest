@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Lets.Trade — Ops Log</title>
+    <link rel="icon" href="/static/icon.png" />
+    <link rel="stylesheet" href="/static/style.css?v=lets-trade-ref-2" />
+  </head>
+
+  <body data-page="log">
+    <div class="lt-bg">
+      <div class="lt-bg__grid3d"></div>
+      <div class="lt-bg__vignette"></div>
+      <div class="lt-bg__noise"></div>
+    </div>
+
+    <header class="lt-top">
+      <div class="lt-brand">
+        <div class="lt-brand__logo">
+          <img src="/static/icon.png" alt="Lets.Trade" onerror="this.style.display='none'"/>
+        </div>
+        <div class="lt-brand__name">Lets.Trade</div>
+      </div>
+
+      <nav class="lt-nav">
+        <a class="lt-nav__link" href="/">Statistics</a>
+        <a class="lt-nav__link lt-nav__link--active" href="/log">Guides</a>
+        <a class="lt-nav__link" href="/log">FAQ</a>
+      </nav>
+
+      <div class="lt-top__right">
+        <div class="lt-chip">
+          <span class="lt-dot"></span>
+          <span id="tsLabel">booting…</span>
+        </div>
+        <a class="lt-btn lt-btn--cyan" href="/">Radar <span class="lt-btn__arrow">➜</span></a>
+      </div>
+    </header>
+
+    <section class="lt-opsHero">
+      <div class="lt-opsHero__title">Internal Operations Log</div>
+      <div class="lt-opsHero__sub">Explainability / debugging / dataset sanity</div>
+      <div class="lt-opsHero__bar">
+        <div class="lt-opsHero__dots">
+          <span class="dot dot--red"></span>
+          <span class="dot dot--green"></span>
+          <span class="dot dot--magenta"></span>
+        </div>
+        <div class="lt-opsHero__line"></div>
+      </div>
+    </section>
+
+    <main class="lt-shell">
+      <section class="lt-ops">
+        <div class="lt-panel">
+          <header class="lt-panel__head">
+            <div class="lt-panel__h">
+              <div class="lt-panel__kicker">EVENT STREAM</div>
+              <div class="lt-panel__hint">filter by symbol • click event to expand</div>
+            </div>
+
+            <div class="lt-actions">
+              <button class="lt-btn lt-btn--ghost" id="btnFollow">Auto-follow: <b id="followState">ON</b></button>
+              <button class="lt-btn lt-btn--ghost" id="btnClear">Clear</button>
+            </div>
+          </header>
+
+          <div class="lt-panel__body">
+            <div class="lt-opsFilters">
+              <div class="lt-field">
+                <div class="lt-field__label">Symbol</div>
+                <select id="symPick" class="lt-select">
+                  <option value="">All</option>
+                </select>
+              </div>
+
+              <div class="lt-field">
+                <div class="lt-field__label">Search text</div>
+                <input id="textFilter" class="lt-input" placeholder="contains… (NOT WORKING, DEX, MEXC)" />
+              </div>
+
+              <div class="lt-field">
+                <div class="lt-field__label">Limit</div>
+                <select id="limitPick" class="lt-select">
+                  <option value="200">200</option>
+                  <option value="300" selected>300</option>
+                  <option value="600">600</option>
+                  <option value="1000">1000</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="lt-chipRow" id="quickChips"></div>
+
+            <div class="lt-opsGrid">
+              <div class="lt-opsGrid__left">
+                <div class="loglist" id="logList"><div class="muted">Booting…</div></div>
+              </div>
+
+              <div class="lt-opsGrid__right">
+                <div class="lt-panel lt-panel--tight">
+                  <header class="lt-panel__head">
+                    <div class="lt-panel__h">
+                      <div class="lt-panel__kicker">SYMBOL INSPECTOR</div>
+                      <div class="lt-panel__hint">last snapshot</div>
+                    </div>
+                  </header>
+                  <div class="lt-panel__body">
+                    <div class="inspector" id="inspector"><div class="muted">Select a symbol to inspect.</div></div>
+                    <div class="lt-note">
+                      datasets are written server-side to <b>datasets/YYYY-MM-DD/SYMBOL.csv</b>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="lt-panel lt-panel--tight">
+                  <header class="lt-panel__head">
+                    <div class="lt-panel__h">
+                      <div class="lt-panel__kicker">SIGNALS</div>
+                      <div class="lt-panel__hint">how to read them</div>
+                    </div>
+                  </header>
+                  <div class="lt-panel__body">
+                    <div class="lt-explainRow"><span class="pill pill--setup">SETUP</span><span class="muted">abs(edge%) ≥ setup threshold</span></div>
+                    <div class="lt-explainRow"><span class="pill pill--action">ACTION</span><span class="muted">abs(edge%) ≥ action threshold → Telegram</span></div>
+                    <div class="lt-explainRow"><span class="pill pill--bad">NOT WORKING</span><span class="muted">missing RPC / service down</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <footer class="lt-foot lt-foot--ops">
+              <span>Lets.Trade • internal ops view</span>
+              <span class="muted">make it observable, then make it fast</span>
+            </footer>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script defer src="/static/app.js?v=lets-trade-ref-2"></script>
+  </body>
+</html>
