@@ -29,8 +29,7 @@
 
       <nav class="lt-nav">
         <a class="lt-nav__link lt-nav__link--active" href="/">Statistics</a>
-        <a class="lt-nav__link" href="/log">Guides</a>
-        <a class="lt-nav__link" href="/log">FAQ</a>
+        <a class="lt-nav__link" href="/log">Log</a>
       </nav>
 
       <div class="lt-top__right">
@@ -45,87 +44,35 @@
       </div>
     </header>
 
-    <section class="lt-hero">
+    <section class="lt-hero lt-hero--compact">
       <div class="lt-hero__head">
-        <h1 class="lt-hero__title">Trading Partners</h1>
-        <p class="lt-hero__sub">Make your money work!</p>
-      </div>
-
-      <div class="lt-hero__scene">
-        <div class="lt-hero__grid"></div>
-
-        <svg class="lt-wave" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true">
-          <defs>
-            <linearGradient id="gWave" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stop-color="rgba(72,247,255,.95)"/>
-              <stop offset="0.5" stop-color="rgba(178,107,255,.95)"/>
-              <stop offset="1" stop-color="rgba(255,75,216,.95)"/>
-            </linearGradient>
-            <filter id="fGlow">
-              <feGaussianBlur stdDeviation="4" result="b"/>
-              <feMerge>
-                <feMergeNode in="b"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-
-          <path class="lt-wave__path lt-wave__path--glow"
-                d="M0,150 C80,60 140,60 220,150 C300,240 360,240 440,150
-                   C520,60 580,60 660,150 C740,240 800,240 880,150
-                   C960,60 1020,60 1100,150 C1140,195 1165,210 1200,140"
-                fill="none" stroke="url(#gWave)" stroke-width="10" filter="url(#fGlow)" />
-          <path class="lt-wave__path"
-                d="M0,150 C80,60 140,60 220,150 C300,240 360,240 440,150
-                   C520,60 580,60 660,150 C740,240 800,240 880,150
-                   C960,60 1020,60 1100,150 C1140,195 1165,210 1200,140"
-                fill="none" stroke="url(#gWave)" stroke-width="4" />
-        </svg>
-
-        <div class="lt-tag lt-tag--cyan" style="left: 10%; top: 30%;">
-          <span class="lt-tag__dot"></span> MEXC futures mid
-        </div>
-        <div class="lt-tag lt-tag--blue" style="left: 38%; top: 22%;">
-          <span class="lt-tag__dot"></span> Spread scanner
-        </div>
-        <div class="lt-tag lt-tag--magenta" style="left: 64%; top: 35%;">
-          <span class="lt-tag__dot"></span> DEX orienting price
-        </div>
-        <div class="lt-tag lt-tag--green" style="left: 73%; top: 55%;">
-          <span class="lt-tag__dot"></span> ACTION → Telegram
-        </div>
+        <h1 class="lt-hero__title">Arbitrage radar</h1>
+        <p class="lt-hero__sub">статусы потоков, DEX, и сигналы в реальном времени</p>
       </div>
     </section>
 
     <main class="lt-shell">
       <section class="lt-dash">
-        <div class="lt-cards4">
+        <div class="lt-cards3">
           <div class="lt-card lt-card--cyan">
-            <div class="lt-card__title">MEXC</div>
+            <div class="lt-card__title">MEXC поток</div>
             <div class="lt-card__pill"><span class="pill pill--init" id="st_mexc_pill">INIT</span></div>
-            <div class="lt-card__desc">Futures tickers / contract stream</div>
-            <div class="lt-card__meta"><span id="mexcCount">—</span> symbols</div>
+            <div class="lt-card__desc">тикеры и mid-price с биржи, проверяем подписку и задержку</div>
+            <div class="lt-card__meta">активных контрактов: <span id="mexcCount">—</span></div>
           </div>
 
           <div class="lt-card lt-card--magenta">
             <div class="lt-card__title">DEX ENGINE</div>
             <div class="lt-card__pill"><span class="pill pill--init" id="st_dex_pill">INIT</span></div>
-            <div class="lt-card__desc">Local pool mid-price (RPC)</div>
-            <div class="lt-card__meta"><span id="dexRouted">—</span> routed</div>
-          </div>
-
-          <div class="lt-card lt-card--blue">
-            <div class="lt-card__title">TELEGRAM</div>
-            <div class="lt-card__pill"><span class="pill pill--init" id="st_tg_pill">INIT</span></div>
-            <div class="lt-card__desc">Rare but precise ACTION alerts</div>
-            <div class="lt-card__meta"><span id="tgHint">—</span></div>
+            <div class="lt-card__desc">локальные RPC пулы, mid-price и маршруты; ловим NOT WORKING сразу</div>
+            <div class="lt-card__meta">маршрутов с ценой: <span id="dexRouted">—</span></div>
           </div>
 
           <div class="lt-card lt-card--green">
-            <div class="lt-card__title">DATASET</div>
+            <div class="lt-card__title">Сигналы и архив</div>
             <div class="lt-card__pill"><span class="pill pill--init" id="st_ds_pill">INIT</span></div>
-            <div class="lt-card__desc">CSV snapshots per symbol</div>
-            <div class="lt-card__meta">datasets/YYYY-MM-DD/</div>
+            <div class="lt-card__desc">ACTION → Telegram, снапшоты в datasets/YYYY-MM-DD/ для отладки</div>
+            <div class="lt-card__meta">канал и CSV: <span id="tgHint">—</span></div>
           </div>
         </div>
 
