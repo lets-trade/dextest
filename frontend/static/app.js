@@ -314,7 +314,9 @@
   }
 
   function applyState(s) {
-    const status = s.status || s.services || {};
+    const snap = s && typeof s === "object" && s.payload ? s.payload : s;
+
+    const status = snap.status || snap.services || {};
     app.state.services = status;
 
     const norm = (v) => (v == null ? null : v.toString().toUpperCase());
@@ -328,25 +330,31 @@
 
     set(
       "st_mexc_pill",
-      status.mexc_ws ?? status.mexc ?? (s.mexc_ok != null ? (s.mexc_ok ? "OK" : "NOT WORKING") : null)
+      status.mexc_ws ?? status.mexc ?? (snap.mexc_ok != null ? (snap.mexc_ok ? "OK" : "NOT WORKING") : null)
     );
-    set("st_dex_pill", status.dex ?? (s.dex_ok != null ? (s.dex_ok ? "OK" : "NOT WORKING") : null));
-    set("st_tg_pill", status.telegram ?? (s.telegram_ok != null ? (s.telegram_ok ? "OK" : "NOT WORKING") : null));
-    set("st_ds_pill", status.dataset ?? (s.dataset_ok != null ? (s.dataset_ok ? "OK" : "NOT WORKING") : null));
+    set("st_dex_pill", status.dex ?? (snap.dex_ok != null ? (snap.dex_ok ? "OK" : "NOT WORKING") : null));
+    set(
+      "st_tg_pill",
+      status.telegram ?? (snap.telegram_ok != null ? (snap.telegram_ok ? "OK" : "NOT WORKING") : null)
+    );
+    set(
+      "st_ds_pill",
+      status.dataset ?? (snap.dataset_ok != null ? (snap.dataset_ok ? "OK" : "NOT WORKING") : null)
+    );
     set("st_usd_pill", status.usd_to_usdt ?? status.usdToUsdt);
 
     // converter snapshot
     app.state.converter = {
-      rate: s.usd_to_usdt_rate ?? status.usdt_rate ?? status.usd_to_usdt_rate ?? status.usdt_rate ?? null,
-      source: s.usd_to_usdt_source ?? status.usdt_rate_src ?? null,
-      ageSec: s.usd_to_usdt_age ?? status.usdt_rate_age ?? null,
-      ok: s.usd_to_usdt_ok ?? status.usdt_rate_ok ?? null,
+      rate: snap.usd_to_usdt_rate ?? status.usdt_rate ?? status.usd_to_usdt_rate ?? status.usdt_rate ?? null,
+      source: snap.usd_to_usdt_source ?? status.usdt_rate_src ?? null,
+      ageSec: snap.usd_to_usdt_age ?? status.usdt_rate_age ?? null,
+      ok: snap.usd_to_usdt_ok ?? status.usdt_rate_ok ?? null,
     };
 
     // config
-    if (s.config && typeof s.config === "object") {
-      app.state.config = s.config;
-      const cfg = s.config;
+    if (snap.config && typeof snap.config === "object") {
+      app.state.config = snap.config;
+      const cfg = snap.config;
       const act = cfg.spread_action_pct ?? cfg.spreadActionPct;
       const setup = cfg.spread_setup_pct ?? cfg.spreadSetupPct;
       const notional = cfg.cex_notional_usdt ?? cfg.cexNotionalUsdt;
@@ -360,41 +368,41 @@
     }
 
     // counts if present in state
-    if ($("mexcCount") && (s.mexc_symbols_count != null)) $("mexcCount").textContent = String(s.mexc_symbols_count);
-    if ($("dexRouted") && (s.dex_routed_count != null)) $("dexRouted").textContent = String(s.dex_routed_count);
+    if ($("mexcCount") && (snap.mexc_symbols_count != null)) $("mexcCount").textContent = String(snap.mexc_symbols_count);
+    if ($("dexRouted") && (snap.dex_routed_count != null)) $("dexRouted").textContent = String(snap.dex_routed_count);
 
     // universe snapshots (schema tolerant)
-    if (Array.isArray(s.universe)) {
-      app.state.universe = s.universe;
+    if (Array.isArray(snap.universe)) {
+      app.state.universe = snap.universe;
       if (!app.boot.firstUniverseAt) {
         app.boot.firstUniverseAt = Date.now();
-        pushLog("info", "BOOT", `universe snapshot (${s.universe.length} rows)`);
+        pushLog("info", "BOOT", `universe snapshot (${snap.universe.length} rows)`);
       }
       if (PAGE === "dashboard") renderDashboardTable();
       if (PAGE === "log" || PAGE === "pipeline") refreshSymbolPicker();
-    } else if (Array.isArray(s.rows)) {
-      app.state.universe = s.rows;
+    } else if (Array.isArray(snap.rows)) {
+      app.state.universe = snap.rows;
       if (PAGE === "dashboard") renderDashboardTable();
       if (PAGE === "log" || PAGE === "pipeline") refreshSymbolPicker();
-    } else if (Array.isArray(s.symbols)) {
-      app.state.universe = s.symbols;
+    } else if (Array.isArray(snap.symbols)) {
+      app.state.universe = snap.symbols;
       if (!app.boot.firstUniverseAt) {
         app.boot.firstUniverseAt = Date.now();
-        pushLog("info", "BOOT", `universe snapshot (${s.symbols.length} rows)`);
+        pushLog("info", "BOOT", `universe snapshot (${snap.symbols.length} rows)`);
       }
       if (PAGE === "dashboard") renderDashboardTable();
       if (PAGE === "log" || PAGE === "pipeline") refreshSymbolPicker();
     }
 
     // signals
-    if (Array.isArray(s.signals)) {
-      app.state.signals = s.signals;
+    if (Array.isArray(snap.signals)) {
+      app.state.signals = snap.signals;
       if (PAGE === "dashboard") renderSignals();
     }
 
     // per-symbol snapshot
-    if (s.symbol && (s.dex || s.mexc || s.edge_pct != null || s.edgePct != null)) {
-      app.state.symbolMap[s.symbol] = { ...s, _ts: Date.now() };
+    if (snap.symbol && (snap.dex || snap.mexc || snap.edge_pct != null || snap.edgePct != null)) {
+      app.state.symbolMap[snap.symbol] = { ...snap, _ts: Date.now() };
       if (PAGE === "log" || PAGE === "pipeline") maybeRenderInspector(app.selectedSymbol);
     }
 
