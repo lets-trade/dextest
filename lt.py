@@ -87,10 +87,6 @@ class LetsTradeConfig:
 
     cex_notional_usdt: float = 100.0  # kept for future depth; dashboard uses mid now
 
-    telegram_bot_token: Optional[str] = None
-    telegram_chat_id: Optional[str] = None
-    telegram_enabled: bool = False
-
     dex_enabled: bool = True
 
     # DexScreener scheduler
@@ -142,10 +138,6 @@ def load_config() -> LetsTradeConfig:
             return False
         return default
 
-    cfg.telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN") or None
-    cfg.telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID") or None
-    cfg.telegram_enabled = bool(cfg.telegram_bot_token and cfg.telegram_chat_id)
-
     cfg.spread_action_pct = _f("SPREAD_ACTION_PCT", cfg.spread_action_pct)
     cfg.spread_setup_pct = _f("SPREAD_SETUP_PCT", cfg.spread_setup_pct)
     cfg.cex_notional_usdt = _f("CEX_NOTIONAL_USDT", cfg.cex_notional_usdt)
@@ -167,12 +159,11 @@ def load_config() -> LetsTradeConfig:
     cfg.save_dex_raw = _b("SAVE_DEX_RAW", cfg.save_dex_raw)
 
     log.info(
-        "Config loaded: spread(action/setup)=%.3f/%.3f cex_notional=%.2f telegram=%s dex=%s "
+        "Config loaded: spread(action/setup)=%.3f/%.3f cex_notional=%.2f dex=%s "
         "dex(rps=%.1f target=%.0fs pick=%d) usd→usdt_refresh=%.0fs dataset(mode=%s flush=%.1fs) routes=%s raw=%s",
         cfg.spread_action_pct,
         cfg.spread_setup_pct,
         cfg.cex_notional_usdt,
-        "ON" if cfg.telegram_enabled else "OFF",
         "ON" if cfg.dex_enabled else "OFF",
         cfg.dex_rps,
         cfg.dex_refresh_target_sec,
@@ -262,7 +253,6 @@ STATUS: Dict[str, Any] = {
     "mexc_ws": "INIT",
     "dex": "INIT",
     "dataset": "INIT",
-    "telegram": "OK" if CFG.telegram_enabled else "NOT_CONFIGURED",
     "routes": "INIT",
     "usd_to_usdt": "INIT",
     "usdt_rate": None,
@@ -430,32 +420,6 @@ async def mexc_ws_loop(stop: asyncio.Event) -> None:
             STATUS["mexc_ws"] = "NOT_WORKING"
             push_event("ERROR", "MEXC WS error", extra={"err": str(e)})
             await asyncio.sleep(3.0)
-
-
-# =========================
-# Telegram (ACTION only)
-# =========================
-async def tg_send(text: str) -> None:
-    if not CFG.telegram_enabled:
-        return
-    http = await get_http()
-    url = f"https://api.telegram.org/bot{CFG.telegram_bot_token}/sendMessage"
-    payload = {
-        "chat_id": CFG.telegram_chat_id,
-        "text": text,
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": True,
-    }
-    try:
-        r = await http.post(url, json=payload)
-        if r.status_code != 200:
-            STATUS["telegram"] = "ERROR"
-            push_event("WARN", "Telegram NOT WORKING", extra={"code": r.status_code})
-        else:
-            STATUS["telegram"] = "OK"
-    except Exception:
-        STATUS["telegram"] = "ERROR"
-        push_event("WARN", "Telegram NOT WORKING")
 
 
 # =========================
@@ -691,9 +655,8 @@ async def dex_loop(
 
 
 # =========================
-# Analysis loop (snapshot + signals + Telegram)
+# Analysis loop (snapshot + signals)
 # =========================
-LAST_ACTION_SENT: Dict[str, float] = {}
 
 LATEST_SNAPSHOT: Dict[str, Any] = {
     "ts": now_ts(),
@@ -836,31 +799,6 @@ async def analysis_loop(stop: asyncio.Event, converter_snapshot: Dict[str, Any])
         # rank signals
         signals.sort(key=lambda r: abs(r.get("edgePct") or 0.0), reverse=True)
 
-        # Telegram: ACTION only, dedupe per symbol (60s)
-        if CFG.telegram_enabled:
-            for r in signals[:30]:
-                sym = r["symbol"]
-                last_sent = LAST_ACTION_SENT.get(sym, 0.0)
-                if ts - last_sent < 60.0:
-                    continue
-                LAST_ACTION_SENT[sym] = ts
-
-                edge = r.get("edgePct") or 0.0
-                mexc_mid = (r.get("mexc") or {}).get("mid")
-                dex_usdt = (r.get("dex") or {}).get("priceUsdt")
-                dex_chain = (r.get("dex") or {}).get("chain") or "?"
-                dex_pair = (r.get("dex") or {}).get("pair") or "?"
-                direction = r.get("direction") or "N/A"
-
-                await tg_send(
-                    f"*Lets.Trade ACTION* `{sym}`\n"
-                    f"Edge: `{edge:.3f}%`\n"
-                    f"Dir: `{direction}`\n"
-                    f"MEXC mid: `{mexc_mid}`\n"
-                    f"DEX (USDT): `{dex_usdt}`\n"
-                    f"Route: `{dex_chain}:{dex_pair}`"
-                )
-
         LATEST_SNAPSHOT = {
             "ts": ts,
             "brand": "Lets.Trade",
@@ -874,7 +812,6 @@ async def analysis_loop(stop: asyncio.Event, converter_snapshot: Dict[str, Any])
                 "dexPickPerSymbol": CFG.dex_pick_per_symbol,
                 "datasetMode": CFG.dataset_mode,
                 "routesCsv": CFG.routes_csv,
-                "telegramEnabled": CFG.telegram_enabled,
             },
             "symbols": symbols_rows,
             "signals": signals[:2000],

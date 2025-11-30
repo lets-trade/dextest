@@ -80,7 +80,7 @@
 
     // canonical state buckets (best-effort)
     state: {
-      services: {}, // mexc/dex/telegram/dataset statuses
+      services: {}, // mexc/dex/dataset statuses
       config: {},   // thresholds, notional...
       universe: [], // rows for table
       signals: [],  // last action/setup signals
@@ -319,19 +319,16 @@
       app.state.services = s.services;
       const mexc = s.services.mexc || s.services.MEXC;
       const dex = s.services.dex || s.services.DEX;
-      const tg = s.services.telegram || s.services.tg || s.services.TELEGRAM;
       const ds = s.services.dataset || s.services.csv || s.services.DATASET;
 
       if (mexc) setPill("st_mexc_pill", mexc.ok ? "OK" : "NOT WORKING", mexc.ok ? "ok" : "bad");
       if (dex)  setPill("st_dex_pill",  dex.ok  ? "OK" : "NOT WORKING", dex.ok  ? "ok" : "bad");
-      if (tg)   setPill("st_tg_pill",   tg.ok   ? "OK" : "NOT WORKING", tg.ok   ? "ok" : "bad");
       if (ds)   setPill("st_ds_pill",   ds.ok   ? "OK" : "NOT WORKING", ds.ok   ? "ok" : "bad");
     }
 
     // legacy flat statuses
     if (s.mexc_ok != null) setPill("st_mexc_pill", s.mexc_ok ? "OK" : "NOT WORKING", s.mexc_ok ? "ok" : "bad");
     if (s.dex_ok  != null) setPill("st_dex_pill",  s.dex_ok  ? "OK" : "NOT WORKING", s.dex_ok  ? "ok" : "bad");
-    if (s.telegram_ok != null) setPill("st_tg_pill", s.telegram_ok ? "OK" : "NOT WORKING", s.telegram_ok ? "ok" : "bad");
     if (s.dataset_ok != null) setPill("st_ds_pill", s.dataset_ok ? "OK" : "NOT WORKING", s.dataset_ok ? "ok" : "bad");
 
     // config
