@@ -27,9 +27,8 @@
       </div>
 
       <nav class="lt-nav">
-        <a class="lt-nav__link" href="/">Statistics</a>
-        <a class="lt-nav__link lt-nav__link--active" href="/log">Guides</a>
-        <a class="lt-nav__link" href="/log">FAQ</a>
+        <a class="lt-nav__link" href="/">Dashboard</a>
+        <a class="lt-nav__link lt-nav__link--active" href="/log">Operations Log</a>
       </nav>
 
       <div class="lt-top__right">
@@ -42,8 +41,8 @@
     </header>
 
     <section class="lt-opsHero">
-      <div class="lt-opsHero__title">Internal Operations Log</div>
-      <div class="lt-opsHero__sub">Explainability / debugging / dataset sanity</div>
+      <div class="lt-opsHero__title">Real-time Operations Console</div>
+      <div class="lt-opsHero__sub">Everything the system does — streamed, searchable, and organized</div>
       <div class="lt-opsHero__bar">
         <div class="lt-opsHero__dots">
           <span class="dot dot--red"></span>
@@ -80,7 +79,7 @@
 
               <div class="lt-field">
                 <div class="lt-field__label">Search text</div>
-                <input id="textFilter" class="lt-input" placeholder="contains… (NOT WORKING, DEX, MEXC)" />
+                <input id="textFilter" class="lt-input" placeholder="Search message, tag, or symbol" />
               </div>
 
               <div class="lt-field">
@@ -91,6 +90,35 @@
                   <option value="600">600</option>
                   <option value="1000">1000</option>
                 </select>
+              </div>
+            </div>
+
+            <div class="lt-opsSummary">
+              <div class="lt-opsSummary__item">
+                <div class="lt-opsSummary__k">Websocket</div>
+                <div class="lt-opsSummary__v" id="sumWsState">—</div>
+                <div class="lt-opsSummary__hint" id="sumWsHint">connection status</div>
+              </div>
+
+              <div class="lt-opsSummary__item">
+                <div class="lt-opsSummary__k">Events captured</div>
+                <div class="lt-opsSummary__v" id="sumEvents">0</div>
+                <div class="lt-opsSummary__hint">since UI boot</div>
+              </div>
+
+              <div class="lt-opsSummary__item">
+                <div class="lt-opsSummary__k">Active symbols</div>
+                <div class="lt-opsSummary__v" id="sumSymbols">0</div>
+                <div class="lt-opsSummary__hint">unique with activity</div>
+              </div>
+
+              <div class="lt-opsSummary__item">
+                <div class="lt-opsSummary__k">Latest event</div>
+                <div class="lt-opsSummary__v lt-opsSummary__v--row">
+                  <span class="lv" id="sumLastLevel">—</span>
+                  <span id="sumLastTag">waiting…</span>
+                </div>
+                <div class="lt-opsSummary__hint" id="sumLastDetail">—</div>
               </div>
             </div>
 
